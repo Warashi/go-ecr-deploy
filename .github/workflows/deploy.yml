@@ -8,15 +8,11 @@ on:
         required: true
         options:
           - multistage-copy-nocache
-          - multistage-copy-layercache-inline
-          - multistage-copy-layercache-registry
           - multistage-copy-layercache-gha
           - multistage-copy-layercache-local
           - multistage-mount-layercache-gha
           - multistage-mount-layercache-gocache-gha
-          - runneronly-layercache-gocache-gha
-          - ko
-          - buildpacks
+          - multistage-mount-gocache
 
 concurrency:
   group: ${{ github.ref }}
@@ -24,112 +20,38 @@ concurrency:
 
 jobs:
   multistage-copy-nocache:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-nocache
     runs-on: ubuntu-latest
     if: github.event.inputs.targetJob == 'multistage-copy-nocache'
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: multistage-copy.Dockerfile
-          push: true
+          push: false
           platforms: linux/amd64
           provenance: false
-          tags: ${{ env.IMAGE_URI }}
-  multistage-copy-layercache-inline:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-inline
-    runs-on: ubuntu-latest
-    if: github.event.inputs.targetJob == 'multistage-copy-layercache-inline'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: multistage-copy.Dockerfile
-          push: true
-          platforms: linux/amd64
-          provenance: false
-          tags: ${{ env.IMAGE_URI }}
-          cache-from: type=registry,ref=${{ env.IMAGE_URI }}
-          cache-to: type=inline
-  multistage-copy-layercache-registry:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-registry
-    runs-on: ubuntu-latest
-    if: github.event.inputs.targetJob == 'multistage-copy-layercache-registry'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: multistage-copy.Dockerfile
-          push: true
-          platforms: linux/amd64
-          provenance: false
-          tags: ${{ env.IMAGE_URI }}
-          cache-from: type=registry,ref=${{ env.IMAGE_URI }}-buildcache
-          cache-to: type=registry,ref=${{ env.IMAGE_URI }}-buildcache,mode=max,image-manifest=true,oci-mediatypes=true
   multistage-copy-layercache-gha:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-gha
     runs-on: ubuntu-latest
     if: github.event.inputs.targetJob == 'multistage-copy-layercache-gha'
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: multistage-copy.Dockerfile
-          push: true
+          push: false
           platforms: linux/amd64
           provenance: false
-          tags: ${{ env.IMAGE_URI }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
   multistage-copy-layercache-local:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-copy-layercache-local
     runs-on: ubuntu-latest
     if: github.event.inputs.targetJob == 'multistage-copy-layercache-local'
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
       - name: Cache Docker layers
         uses: actions/cache@v4
         with:
@@ -142,10 +64,9 @@ jobs:
         with:
           context: .
           file: multistage-copy.Dockerfile
-          push: true
+          push: false
           platforms: linux/amd64
           provenance: false
-          tags: ${{ env.IMAGE_URI }}
           cache-from: type=local,src=/tmp/.buildx-cache
           cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
       - name: Move cache
@@ -153,42 +74,25 @@ jobs:
           rm -rf /tmp/.buildx-cache
           mv /tmp/.buildx-cache-new /tmp/.buildx-cache
   multistage-mount-layercache-gha:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-mount-layercache-gha
     runs-on: ubuntu-latest
     if: github.event.inputs.targetJob == 'multistage-mount-layercache-gha'
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v6
         with:
           context: .
           file: multistage-mount.Dockerfile
-          push: true
+          push: false
           platforms: linux/amd64
           provenance: false
-          tags: ${{ env.IMAGE_URI }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
   multistage-mount-layercache-gocache-gha:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:multistage-mount-layercache-gocache-gha
     runs-on: ubuntu-latest
     if: github.event.inputs.targetJob == 'multistage-mount-layercache-gocache-gha'
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
       - uses: docker/setup-buildx-action@v3
       - uses: actions/cache@v4
         with:
@@ -207,79 +111,34 @@ jobs:
         with:
           context: .
           file: multistage-mount.Dockerfile
-          push: true
+          push: false
           platforms: linux/amd64
           provenance: false
-          tags: ${{ env.IMAGE_URI }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-  runneronly-layercache-gocache-gha:
-    env:
-      IMAGE_URI: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy:runneronly-layercache-gocache-gha
+  multistage-mount-gocache:
     runs-on: ubuntu-latest
-    if: github.event.inputs.targetJob == 'runneronly-layercache-gocache-gha'
+    if: github.event.inputs.targetJob == 'multistage-mount-gocache'
     steps:
       - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
       - uses: docker/setup-buildx-action@v3
-      - uses: actions/setup-go@v5
+      - uses: actions/cache@v4
         with:
-          go-version: '1.23'
-      - name: Build go app
-        run: |
-          mkdir -p ./dist
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o ./dist/app .
+          path: |
+            go-mod-cache
+            go-build-cache
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+      - uses: reproducible-containers/buildkit-cache-dance@v3.1.2
+        with:
+          cache-map: |
+            {
+              "go-mod-cache": "/go/pkg/mod",
+              "go-build-cache": "/root/.cache/go-build"
+            }
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: runneronly.Dockerfile
-          push: true
+          file: multistage-mount.Dockerfile
+          push: false
           platforms: linux/amd64
           provenance: false
-          tags: ${{ env.IMAGE_URI }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-  ko:
-    env:
-      IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
-      IMAGE_TAG: ko
-    runs-on: ubuntu-latest
-    if: github.event.inputs.targetJob == 'ko'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: actions/setup-go@v5
-        with:
-          go-version: '1.23'
-      - uses: ko-build/setup-ko@v0.7
-      - name: Build and push image
-        run: |
-          KO_DOCKER_REPO=${IMAGE_NAME} ko build --bare --tags ${IMAGE_TAG} .
-  buildpacks:
-    env:
-      IMAGE_NAME: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-west-2.amazonaws.com/go-ecr-deploy
-      IMAGE_TAG: buildpacks
-    runs-on: ubuntu-latest
-    if: github.event.inputs.targetJob == 'buildpacks'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-west-2
-      - uses: aws-actions/amazon-ecr-login@v2
-      - uses: buildpacks/github-actions/setup-pack@v5.8.3
-      - name: Build and push image
-        run: |
-          pack build ${IMAGE_NAME}:${IMAGE_TAG} --builder gcr.io/buildpacks/builder
-          docker push ${IMAGE_NAME}:${IMAGE_TAG}

@@ -10,16 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/ecr"
-	"github.com/aws/aws-sdk-go-v2/service/ecr/types"
 	"github.com/cli/go-gh/v2"
 )
 
 const (
-	gitRepoName = "abekoh/go-ecr-deploy"
-	ecrRepoName = "go-ecr-deploy"
+	gitRepoName = "Warashi/go-ecr-deploy"
 )
 
 func getJSONFields[T any]() string {
@@ -175,33 +170,6 @@ func runJobAndMeasure(ctx context.Context, targetJob, branch string) (RunJobAndM
 func clearCache(ctx context.Context) error {
 	log.Printf("[CMD] gh cache delete --all")
 	_, _, _ = gh.ExecContext(ctx, "cache", "delete", "--all")
-	log.Printf("[AWS] remove all images from ECR")
-	if err := tryNTimes(func() error {
-		resp, err := ecrClient.DescribeImages(ctx, &ecr.DescribeImagesInput{
-			RepositoryName: aws.String(ecrRepoName),
-		})
-		if err != nil {
-			return err
-		}
-		if len(resp.ImageDetails) == 0 {
-			return nil
-		}
-
-		imageIds := make([]types.ImageIdentifier, 0, len(resp.ImageDetails))
-		for _, image := range resp.ImageDetails {
-			imageIds = append(imageIds, types.ImageIdentifier{ImageDigest: image.ImageDigest})
-		}
-
-		if _, err := ecrClient.BatchDeleteImage(ctx, &ecr.BatchDeleteImageInput{
-			RepositoryName: aws.String(ecrRepoName),
-			ImageIds:       imageIds,
-		}); err != nil {
-			return err
-		}
-		return nil
-	}, 1, 3); err != nil {
-		return fmt.Errorf("failed to remove all images from ECR: %w", err)
-	}
 	return nil
 }
 
@@ -225,19 +193,6 @@ func tryNTimes(f func() error, maxCount, maxAttempt int) error {
 	return nil
 }
 
-var (
-	ecrClient *ecr.Client
-)
-
-func init() {
-	cfg, err := config.LoadDefaultConfig(context.Background())
-	cfg.Region = "us-west-2"
-	if err != nil {
-		log.Fatalf("failed to load AWS config: %v", err)
-	}
-	ecrClient = ecr.NewFromConfig(cfg)
-}
-
 type MeasureResult struct {
 	TargetJob           string                  `json:"targetJob"`
 	NoCache             RunJobAndMeasureResults `json:"noCache"`
@@ -247,22 +202,13 @@ type MeasureResult struct {
 }
 
 func measure() {
-	//targetJobs := []string{
-	//	//"multistage-copy-nocache",
-	//	"multistage-copy-layercache-inline",
-	//	"multistage-copy-layercache-registry",
-	//	"multistage-copy-layercache-gha",
-	//	"multistage-copy-layercache-local",
-	//	"multistage-mount-layercache-gha",
-	//	"multistage-mount-layercache-gocache-gha",
-	//	"runneronly-layercache-gocache-gha",
-	//	"ko",
-	//}
-
-	// Recovery
 	targetJobs := []string{
-		"runneronly-layercache-gocache-gha",
 		"multistage-copy-nocache",
+		"multistage-copy-layercache-gha",
+		"multistage-copy-layercache-local",
+		"multistage-mount-layercache-gha",
+		"multistage-mount-layercache-gocache-gha",
+		"multistage-mount-gocache",
 	}
 
 	log.Printf("targetJobs: %v", targetJobs)
