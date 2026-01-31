@@ -161,7 +161,7 @@ jobs:
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
-      - uses: Warashi/buildkit-cache-dance@948a0e0eebb16b718a6bb456140a5179eb54ae87 # compress-and-use-output
+      - uses: Warashi/buildkit-cache-dance@41dce154910bb4c037762b59844099edfe2eb002 # compress-and-use-output
         with:
           cache-map: |
             {
