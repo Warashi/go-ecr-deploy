@@ -150,17 +150,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.inputs.targetJob == 'multistage-mount-gocache-tmpfs'
     steps:
-      - name: Setup tmpfs for Go cache
+      - name: Setup tmpfs for workdir
         run: |
-          sudo mkdir -p /tmp/tmpfs
-          sudo mount -t tmpfs -o size=2G tmpfs /tmp/tmpfs
+          sudo mount -t tmpfs -o size=5G tmpfs .
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
       - uses: actions/cache@v4
         with:
           path: |
-            /tmp/tmpfs/go-mod-cache
-            /tmp/tmpfs/go-build-cache
+            go-mod-cache
+            go-build-cache
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
             ${{ runner.os }}-go-
@@ -168,8 +167,8 @@ jobs:
         with:
           cache-map: |
             {
-              "/tmp/tmpfs/go-mod-cache": "/go/pkg/mod",
-              "/tmp/tmpfs/go-build-cache": "/root/.cache/go-build"
+              "go-mod-cache": "/go/pkg/mod",
+              "go-build-cache": "/root/.cache/go-build"
             }
       - uses: docker/build-push-action@v6
         with:
