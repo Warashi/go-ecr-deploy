@@ -203,10 +203,10 @@ type MeasureResult struct {
 
 func measure() {
 	targetJobs := []string{
-		"multistage-copy-nocache",
-		"multistage-copy-layercache-gha",
-		"multistage-copy-layercache-local",
-		"multistage-mount-layercache-gha",
+		// "multistage-copy-nocache",
+		// "multistage-copy-layercache-gha",
+		// "multistage-copy-layercache-local",
+		// "multistage-mount-layercache-gha",
 		"multistage-mount-layercache-gocache-gha",
 		"multistage-mount-gocache",
 		"multistage-mount-gocache-tmpfs",
