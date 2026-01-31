@@ -14,9 +14,7 @@ on:
           - multistage-mount-layercache-gocache-gha
           - multistage-mount-gocache
           - multistage-mount-gocache-warashi-tar
-          - multistage-mount-gocache-warashi-tar-tmpfs
           - multistage-mount-gocache-warashi-local
-          - multistage-mount-gocache-warashi-local-tmpfs
 
 jobs:
   multistage-copy-nocache:
@@ -176,40 +174,6 @@ jobs:
           push: false
           platforms: linux/amd64
           provenance: false
-  multistage-mount-gocache-warashi-tar-tmpfs:
-    runs-on: ubuntu-latest
-    if: github.event.inputs.targetJob == 'multistage-mount-gocache-warashi-tar-tmpfs'
-    steps:
-      - name: Setup tmpfs for Go cache
-        run: |
-          sudo mkdir -p /tmp/tmpfs
-          sudo mount -t tmpfs -o size=2G tmpfs /tmp/tmpfs
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-        id: setup-buildx
-      - uses: actions/cache@v4
-        with:
-          path: |
-            /tmp/tmpfs/go-mod-cache
-            /tmp/tmpfs/go-build-cache
-          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ github.job }}-
-      - uses: Warashi/buildkit-cache-dance@6421f7bcbe989089c149367b6f5e5844af56798c # compress-and-use-output
-        with:
-          builder: ${{ steps.setup-buildx.outputs.name }}
-          cache-map: |
-            {
-              "/tmp/tmpfs/go-mod-cache": "/go/pkg/mod",
-              "/tmp/tmpfs/go-build-cache": "/root/.cache/go-build"
-            }
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: multistage-mount.Dockerfile
-          push: false
-          platforms: linux/amd64
-          provenance: false
   multistage-mount-gocache-warashi-local:
     runs-on: ubuntu-latest
     if: github.event.inputs.targetJob == 'multistage-mount-gocache-warashi-local'
@@ -225,47 +189,13 @@ jobs:
           key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
           restore-keys: |
             ${{ runner.os }}-go-${{ github.job }}-
-      - uses: Warashi/buildkit-cache-dance@dd007a8d852cdbc7216481a16e0baebcb742c17f # type-local
+      - uses: Warashi/buildkit-cache-dance@4276245697272348b0ddaddc24de3ad108f9b677 # type-local
         with:
           builder: ${{ steps.setup-buildx.outputs.name }}
           cache-map: |
             {
               "go-mod-cache": "/go/pkg/mod",
               "go-build-cache": "/root/.cache/go-build"
-            }
-      - uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: multistage-mount.Dockerfile
-          push: false
-          platforms: linux/amd64
-          provenance: false
-  multistage-mount-gocache-warashi-local-tmpfs:
-    runs-on: ubuntu-latest
-    if: github.event.inputs.targetJob == 'multistage-mount-gocache-warashi-local-tmpfs'
-    steps:
-      - name: Setup tmpfs for Go cache
-        run: |
-          sudo mkdir -p /tmp/tmpfs
-          sudo mount -t tmpfs -o size=2G tmpfs /tmp/tmpfs
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-        id: setup-buildx
-      - uses: actions/cache@v4
-        with:
-          path: |
-            /tmp/tmpfs/go-mod-cache
-            /tmp/tmpfs/go-build-cache
-          key: ${{ runner.os }}-go-${{ github.job }}-${{ hashFiles('**/go.sum') }}-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-go-${{ github.job }}-
-      - uses: Warashi/buildkit-cache-dance@dd007a8d852cdbc7216481a16e0baebcb742c17f # type-local
-        with:
-          builder: ${{ steps.setup-buildx.outputs.name }}
-          cache-map: |
-            {
-              "/tmp/tmpfs/go-mod-cache": "/go/pkg/mod",
-              "/tmp/tmpfs/go-build-cache": "/root/.cache/go-build"
             }
       - uses: docker/build-push-action@v6
         with:
