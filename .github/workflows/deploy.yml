@@ -100,6 +100,8 @@ jobs:
             go-mod-cache
             go-build-cache
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - uses: reproducible-containers/buildkit-cache-dance@v3.1.2
         with:
           cache-map: |
@@ -128,6 +130,8 @@ jobs:
             go-mod-cache
             go-build-cache
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - uses: reproducible-containers/buildkit-cache-dance@v3.1.2
         with:
           cache-map: |
@@ -158,6 +162,8 @@ jobs:
             /tmp/tmpfs/go-mod-cache
             /tmp/tmpfs/go-build-cache
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
       - uses: reproducible-containers/buildkit-cache-dance@v3.1.2
         with:
           cache-map: |
