@@ -209,6 +209,7 @@ func measure() {
 		"multistage-mount-layercache-gha",
 		"multistage-mount-layercache-gocache-gha",
 		"multistage-mount-gocache",
+		"multistage-mount-gocache-tmpfs",
 	}
 
 	log.Printf("targetJobs: %v", targetJobs)
