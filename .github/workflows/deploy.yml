@@ -18,10 +18,6 @@ on:
           - multistage-mount-gocache-warashi-local
           - multistage-mount-gocache-warashi-local-tmpfs
 
-concurrency:
-  group: ${{ github.ref }}
-  cancel-in-progress: true
-
 jobs:
   multistage-copy-nocache:
     runs-on: ubuntu-latest
